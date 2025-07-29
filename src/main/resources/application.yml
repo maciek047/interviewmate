@@ -1,0 +1,16 @@
+server:
+  port: ${PORT:8080}
+spring:
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/interviewdb}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+openai:
+  api-key: ${OPENAI_API_KEY:}
+jwt:
+  secret: ${JWT_SECRET:change_me}
+  expiration-ms: 3600000
