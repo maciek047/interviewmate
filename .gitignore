@@ -5,6 +5,3 @@
 build
 # Ignore generated jar
 interviewmate.jar
-
-# Ignore Gradle wrapper jar
-gradle/wrapper/gradle-wrapper.jar
