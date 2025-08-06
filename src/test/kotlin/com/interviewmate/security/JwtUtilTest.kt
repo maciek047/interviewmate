@@ -4,7 +4,8 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
 class JwtUtilTest {
-    private val util = JwtUtil("testsecret", 3600000)
+    // At least 32 bytes required for HS256 signing key
+    private val util = JwtUtil("0123456789ABCDEF0123456789ABCDEF", 3600000)
 
     @Test
     fun `create and parse token`() {

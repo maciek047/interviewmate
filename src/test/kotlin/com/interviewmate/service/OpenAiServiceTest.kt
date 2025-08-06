@@ -1,6 +1,7 @@
 package com.interviewmate.service
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.KotlinModule
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
@@ -13,6 +14,7 @@ import reactor.core.publisher.Mono
 
 class OpenAiServiceTest {
     private fun buildService(body: String): OpenAiService {
+        val mapper = ObjectMapper().registerModule(KotlinModule.Builder().build())
         val exchange = ExchangeFunction {
             Mono.just(
                 ClientResponse.create(HttpStatus.OK)
@@ -21,14 +23,18 @@ class OpenAiServiceTest {
                     .build()
             )
         }
-        val builder = WebClient.builder().exchangeFunction(exchange)
-        return OpenAiService(builder, "key", ObjectMapper())
+        val builder = WebClient.builder()
+            .exchangeFunction(exchange)
+            .codecs { it.defaultCodecs().jackson2JsonDecoder(org.springframework.http.codec.json.Jackson2JsonDecoder(mapper)) }
+        return OpenAiService(builder, "key", mapper)
     }
 
     @Test
     fun `parse valid response`() {
         val content = "[{\"question\":\"Q1\",\"answer\":\"A1\"}]"
-        val body = "{\"choices\":[{\"message\":{\"content\":\"$content\"}}]}"
+        val body = ObjectMapper().writeValueAsString(
+            mapOf("choices" to listOf(mapOf("message" to mapOf("content" to content))))
+        )
         val service = buildService(body)
 
         val result = service.generateQuestions("dev", "desc", 1)

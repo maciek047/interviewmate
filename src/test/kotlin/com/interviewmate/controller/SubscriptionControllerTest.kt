@@ -9,15 +9,15 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.mockito.ArgumentCaptor
-import org.mockito.ArgumentMatchers.any
-import org.mockito.BDDMockito.given
-import org.mockito.Mockito.verify
+import org.mockito.kotlin.any
+import org.mockito.kotlin.verify
+import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.context.annotation.Import
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
-import org.springframework.security.core.context.SecurityContextHolder
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
@@ -27,6 +27,10 @@ import java.util.Optional
 
 @WebMvcTest(SubscriptionController::class)
 @Import(SecurityConfig::class)
+@org.springframework.test.context.TestPropertySource(properties = [
+    "jwt.secret=0123456789ABCDEF0123456789ABCDEF",
+    "jwt.expiration-ms=3600000"
+])
 class SubscriptionControllerTest {
     @Autowired
     lateinit var mockMvc: MockMvc
@@ -39,7 +43,7 @@ class SubscriptionControllerTest {
 
     @AfterEach
     fun clearContext() {
-        SecurityContextHolder.clearContext()
+        // no state to clear when using request-specific authentication
     }
 
     @Test
@@ -51,14 +55,13 @@ class SubscriptionControllerTest {
     @Test
     fun `subscribe authenticated updates status`() {
         val user = User(id = 1, email = "a@example.com", passwordHash = "h")
-        given(userRepository.findById(1)).willReturn(Optional.of(user))
-        given(userRepository.save(any())).willAnswer { it.getArgument<User>(0) }
+        whenever(userRepository.findById(1L)).thenReturn(Optional.of(user))
+        whenever(userRepository.save(any() ?: user)).thenAnswer { it.getArgument<User>(0) }
 
         val claims = JwtUtil.JwtClaims(1, "NONE")
         val auth = UsernamePasswordAuthenticationToken(claims, null, listOf())
-        SecurityContextHolder.getContext().authentication = auth
 
-        mockMvc.perform(post("/api/subscription/subscribe"))
+        mockMvc.perform(post("/api/subscription/subscribe").with(authentication(auth)))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.subscribed").value(true))
 
@@ -76,13 +79,12 @@ class SubscriptionControllerTest {
     @Test
     fun `status authenticated returns flag`() {
         val user = User(id = 2, email = "b@example.com", passwordHash = "h", subscriptionStatus = "SUBSCRIBED")
-        given(userRepository.findById(2)).willReturn(Optional.of(user))
+        whenever(userRepository.findById(2L)).thenReturn(Optional.of(user))
 
         val claims = JwtUtil.JwtClaims(2, "SUBSCRIBED")
         val auth = UsernamePasswordAuthenticationToken(claims, null, listOf())
-        SecurityContextHolder.getContext().authentication = auth
 
-        mockMvc.perform(get("/api/subscription/status"))
+        mockMvc.perform(get("/api/subscription/status").with(authentication(auth)))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.subscribed").value(true))
     }
