@@ -16,6 +16,8 @@ import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @RestController
 class InterviewController(
@@ -25,12 +27,14 @@ class InterviewController(
     private val mapper: ObjectMapper
 ) {
     @PostMapping("/api/questions")
-    fun generateQuestions(@Valid @RequestBody req: GenerateRequest): ResponseEntity<GenerateResponse> {
+    suspend fun generateQuestions(@Valid @RequestBody req: GenerateRequest): ResponseEntity<GenerateResponse> {
         val auth = SecurityContextHolder.getContext().authentication
         val claims = auth?.principal as? JwtUtil.JwtClaims
 
         val results = try {
-            llmService.generateQuestions(req.jobName, req.jobDescription, req.numQuestions)
+            withContext(Dispatchers.Default) {
+                llmService.generateQuestions(req.jobName, req.jobDescription, req.numQuestions)
+            }
         } catch (ex: Exception) {
             return ResponseEntity.status(HttpStatus.BAD_GATEWAY).build()
         }

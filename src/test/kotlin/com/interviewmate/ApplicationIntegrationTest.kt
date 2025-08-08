@@ -15,6 +15,8 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import kotlinx.coroutines.runBlocking
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -36,7 +38,9 @@ class ApplicationIntegrationTest {
     @Test
     fun `full user flow`() {
         val questions = (1..5).map { i -> "Q$i" to "A$i" }
-        whenever(llmService.generateQuestions(any(), any(), any())).thenReturn(questions)
+        runBlocking {
+            whenever(llmService.generateQuestions("Dev", "Desc", 5)).thenReturn(questions)
+        }
 
         mockMvc.perform(
             post("/api/auth/register")
@@ -52,11 +56,12 @@ class ApplicationIntegrationTest {
             .andReturn().response.contentAsString
         val token = mapper.readTree(loginRes).get("token").asText()
 
-        var res = mockMvc.perform(
+        var mvcResult = mockMvc.perform(
             post("/api/questions")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"jobName":"Dev","jobDescription":"Desc","numQuestions":5}""")
-        )
+        ).andReturn()
+        var res = mockMvc.perform(asyncDispatch(mvcResult))
             .andExpect(status().isOk)
             .andReturn()
         var node = mapper.readTree(res.response.contentAsString)
@@ -68,12 +73,13 @@ class ApplicationIntegrationTest {
                 .header("Authorization", "Bearer $token")
         ).andExpect(status().isOk)
 
-        res = mockMvc.perform(
+        mvcResult = mockMvc.perform(
             post("/api/questions")
                 .header("Authorization", "Bearer $token")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"jobName":"Dev","jobDescription":"Desc","numQuestions":5}""")
-        )
+        ).andReturn()
+        res = mockMvc.perform(asyncDispatch(mvcResult))
             .andExpect(status().isOk)
             .andReturn()
         node = mapper.readTree(res.response.contentAsString)

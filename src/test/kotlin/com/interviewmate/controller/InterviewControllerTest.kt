@@ -22,6 +22,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.util.Optional
 
@@ -73,7 +74,11 @@ class InterviewControllerTest {
     class LlmConfig {
         @Bean
         fun llmService(): LLMService = object : LLMService {
-            override fun generateQuestions(jobName: String, jobDescription: String, numQuestions: Int): List<Pair<String, String>> = questions
+            override suspend fun generateQuestions(
+                jobName: String,
+                jobDescription: String,
+                numQuestions: Int
+            ): List<Pair<String, String>> = questions
         }
     }
 
@@ -84,11 +89,12 @@ class InterviewControllerTest {
 
     @Test
     fun `unauthenticated limited to three`() {
-        val res = mockMvc.perform(
+        val mvcResult = mockMvc.perform(
             post("/api/questions")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"jobName":"Dev","jobDescription":"Desc","numQuestions":5}""")
-        )
+        ).andReturn()
+        val res = mockMvc.perform(asyncDispatch(mvcResult))
             .andExpect(status().isOk)
             .andReturn()
         val node = mapper.readTree(res.response.contentAsString)
@@ -106,12 +112,13 @@ class InterviewControllerTest {
         val claims = JwtUtil.JwtClaims(1, "NONE")
         val auth = UsernamePasswordAuthenticationToken(claims, null, listOf())
 
-        val res = mockMvc.perform(
+        val mvcResult = mockMvc.perform(
             post("/api/questions")
                 .with(authentication(auth))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"jobName":"Dev","jobDescription":"Desc","numQuestions":5}""")
-        )
+        ).andReturn()
+        val res = mockMvc.perform(asyncDispatch(mvcResult))
             .andExpect(status().isOk)
             .andReturn()
         val node = mapper.readTree(res.response.contentAsString)
@@ -127,12 +134,13 @@ class InterviewControllerTest {
         val claims = JwtUtil.JwtClaims(2, "SUBSCRIBED")
         val auth = UsernamePasswordAuthenticationToken(claims, null, listOf())
 
-        val res = mockMvc.perform(
+        val mvcResult = mockMvc.perform(
             post("/api/questions")
                 .with(authentication(auth))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"jobName":"Dev","jobDescription":"Desc","numQuestions":5}""")
-        )
+        ).andReturn()
+        val res = mockMvc.perform(asyncDispatch(mvcResult))
             .andExpect(status().isOk)
             .andReturn()
         val node = mapper.readTree(res.response.contentAsString)

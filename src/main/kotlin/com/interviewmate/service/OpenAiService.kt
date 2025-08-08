@@ -6,6 +6,7 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
+import org.springframework.web.reactive.function.client.awaitBody
 
 /**
  * LLMService implementation using OpenAI's Chat Completion API.
@@ -21,7 +22,7 @@ class OpenAiService(
         .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer $openAiApiKey")
         .build()
 
-    override fun generateQuestions(
+    override suspend fun generateQuestions(
         jobName: String,
         jobDescription: String,
         numQuestions: Int
@@ -47,8 +48,7 @@ class OpenAiService(
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
                 .retrieve()
-                .bodyToMono(OpenAiResponse::class.java)
-                .block() ?: throw IllegalStateException("Empty OpenAI response")
+                .awaitBody<OpenAiResponse>()
         } catch (ex: Exception) {
             throw IllegalStateException("Failed to call OpenAI", ex)
         }
