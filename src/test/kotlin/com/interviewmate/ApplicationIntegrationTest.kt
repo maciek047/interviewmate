@@ -2,20 +2,19 @@ package com.interviewmate
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.interviewmate.service.LLMService
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import org.mockito.ArgumentMatchers.anyInt
-import org.mockito.ArgumentMatchers.anyString
-import org.mockito.BDDMockito.given
+import org.mockito.kotlin.any
+import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -33,7 +32,7 @@ class ApplicationIntegrationTest {
     @Test
     fun `full user flow`() {
         val questions = (1..5).map { i -> "Q$i" to "A$i" }
-        given(llmService.generateQuestions(anyString(), anyString(), anyInt())).willReturn(questions)
+        whenever(llmService.generateQuestions(any(), any(), any())).thenReturn(questions)
 
         mockMvc.perform(
             post("/api/auth/register")
@@ -49,28 +48,32 @@ class ApplicationIntegrationTest {
             .andReturn().response.contentAsString
         val token = mapper.readTree(loginRes).get("token").asText()
 
-        mockMvc.perform(
+        var res = mockMvc.perform(
             post("/api/questions")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"jobName":"Dev","jobDescription":"Desc","numQuestions":5}""")
         )
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.questions.length()").value(3))
-            .andExpect(jsonPath("$.subscribed").value(false))
+            .andReturn()
+        var node = mapper.readTree(res.response.contentAsString)
+        assertEquals(3, node.get("questions").size())
+        assertEquals(false, node.get("subscribed").asBoolean())
 
         mockMvc.perform(
             post("/api/subscription/subscribe")
                 .header("Authorization", "Bearer $token")
         ).andExpect(status().isOk)
 
-        mockMvc.perform(
+        res = mockMvc.perform(
             post("/api/questions")
                 .header("Authorization", "Bearer $token")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"jobName":"Dev","jobDescription":"Desc","numQuestions":5}""")
         )
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.questions.length()").value(5))
-            .andExpect(jsonPath("$.subscribed").value(true))
+            .andReturn()
+        node = mapper.readTree(res.response.contentAsString)
+        assertEquals(5, node.get("questions").size())
+        assertEquals(true, node.get("subscribed").asBoolean())
     }
 }

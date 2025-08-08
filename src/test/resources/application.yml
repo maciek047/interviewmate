@@ -13,5 +13,5 @@ spring:
 openai:
   api-key: test
 jwt:
-  secret: testsecret
+  secret: 0123456789ABCDEF0123456789ABCDEF
   expiration-ms: 3600000
