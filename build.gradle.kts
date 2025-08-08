@@ -6,6 +6,9 @@ plugins {
     kotlin("plugin.jpa") version "1.9.23"
 }
 
+group = "com.interviewmate"
+version = "0.1.0"
+
 repositories {
     mavenCentral()
 }
@@ -15,6 +18,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-validation")
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.postgresql:postgresql:42.7.3")
@@ -45,6 +49,10 @@ tasks.getByName<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar
 
 tasks.getByName<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
     mainClass.set("com.interviewmate.ApplicationKt")
+}
+
+tasks.register("stage") {
+    dependsOn("bootJar")
 }
 
 tasks.withType<Test> {
