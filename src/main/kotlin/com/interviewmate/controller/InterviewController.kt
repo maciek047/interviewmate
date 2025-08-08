@@ -28,7 +28,6 @@ class InterviewController(
     fun generateQuestions(@Valid @RequestBody req: GenerateRequest): ResponseEntity<GenerateResponse> {
         val auth = SecurityContextHolder.getContext().authentication
         val claims = auth?.principal as? JwtUtil.JwtClaims
-        val subscribed = claims?.subscriptionStatus == "SUBSCRIBED"
 
         val results = try {
             llmService.generateQuestions(req.jobName, req.jobDescription, req.numQuestions)
@@ -36,9 +35,11 @@ class InterviewController(
             return ResponseEntity.status(HttpStatus.BAD_GATEWAY).build()
         }
 
+        var subscribed = false
         if (claims != null) {
             val user = userRepository.findById(claims.userId).orElse(null)
             if (user != null) {
+                subscribed = user.subscriptionStatus == "SUBSCRIBED"
                 val session = InterviewSession(
                     user = user,
                     jobName = req.jobName,

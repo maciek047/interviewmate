@@ -47,6 +47,18 @@ class InterviewControllerTest {
     @MockBean
     lateinit var jwtFilter: JwtAuthenticationFilter
 
+    @org.junit.jupiter.api.BeforeEach
+    fun setupFilter() {
+        org.springframework.security.core.context.SecurityContextHolder.clearContext()
+        org.mockito.kotlin.doAnswer {
+            val req = it.getArgument<jakarta.servlet.ServletRequest>(0)
+            val res = it.getArgument<jakarta.servlet.ServletResponse>(1)
+            val chain = it.getArgument<jakarta.servlet.FilterChain>(2)
+            chain.doFilter(req, res)
+            null
+        }.whenever(jwtFilter).doFilter(any(), any(), any())
+    }
+
     companion object {
         val questions = listOf(
             "Q1" to "A1",
@@ -67,7 +79,7 @@ class InterviewControllerTest {
 
     @AfterEach
     fun clearContext() {
-        // no state to clear when using request-specific authentication
+        org.springframework.security.core.context.SecurityContextHolder.clearContext()
     }
 
     @Test
@@ -88,7 +100,8 @@ class InterviewControllerTest {
 
     @Test
     fun `authenticated unsubscribed limited to three`() {
-        whenever(userRepository.findById(any())).thenReturn(Optional.empty())
+        val user = com.interviewmate.model.User(id = 1, email = "a@b.com", passwordHash = "h")
+        whenever(userRepository.findById(any())).thenReturn(Optional.of(user))
 
         val claims = JwtUtil.JwtClaims(1, "NONE")
         val auth = UsernamePasswordAuthenticationToken(claims, null, listOf())
@@ -108,7 +121,8 @@ class InterviewControllerTest {
 
     @Test
     fun `subscribed user gets full list`() {
-        whenever(userRepository.findById(any())).thenReturn(Optional.empty())
+        val user = com.interviewmate.model.User(id = 2, email = "b@c.com", passwordHash = "h", subscriptionStatus = "SUBSCRIBED")
+        whenever(userRepository.findById(any())).thenReturn(Optional.of(user))
 
         val claims = JwtUtil.JwtClaims(2, "SUBSCRIBED")
         val auth = UsernamePasswordAuthenticationToken(claims, null, listOf())

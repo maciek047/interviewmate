@@ -19,6 +19,10 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@org.springframework.test.context.TestPropertySource(properties = [
+    "jwt.secret=0123456789ABCDEF0123456789ABCDEF",
+    "jwt.expiration-ms=3600000"
+])
 class ApplicationIntegrationTest {
     @Autowired
     lateinit var mockMvc: MockMvc
