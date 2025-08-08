@@ -14,3 +14,8 @@ openai:
 jwt:
   secret: ${JWT_SECRET:change_me}
   expiration-ms: 3600000
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health"

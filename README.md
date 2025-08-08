@@ -38,12 +38,30 @@ Tests use an in-memory H2 database.
 - **Subscribe** – `POST /api/subscription/subscribe` (requires token) to mark the user as subscribed.
 
 ## Deployment
-Build the runnable jar:
-```
-./gradlew build
-```
-The generated jar lives in `build/libs/`. Deployment to Heroku or other platforms will be covered in
-future tasks.
+### Deploying to Heroku
+1. Create an app and database:
+   ```
+   heroku create <app-name>
+   heroku addons:create heroku-postgresql:hobby-dev
+   ```
+2. Configure required secrets:
+   ```
+   heroku config:set OPENAI_API_KEY=<your_key>
+   heroku config:set JWT_SECRET=<jwt_secret>
+   ```
+   The Postgres add-on sets `DATABASE_URL` automatically.
+3. Deploy:
+   ```
+   git push heroku main
+   ```
+   The included `Procfile` and Gradle `stage` task build `interviewmate.jar`.
+4. Verify:
+   ```
+   heroku logs --tail
+   heroku open /actuator/health
+   ```
+This hobby deployment runs a single dyno and is not intended for heavy load. Ensure secrets are kept
+out of version control and adjust CORS and other production settings as needed.
 
 ## Continuous Integration
 Tests run with `./gradlew test`. TODO: add GitHub Actions and coverage badges.
