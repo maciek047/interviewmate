@@ -11,6 +11,7 @@ import org.springframework.web.reactive.function.client.ClientResponse
 import org.springframework.web.reactive.function.client.ExchangeFunction
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
+import kotlinx.coroutines.runBlocking
 
 class OpenAiServiceTest {
     private fun buildService(body: String): OpenAiService {
@@ -37,7 +38,7 @@ class OpenAiServiceTest {
         )
         val service = buildService(body)
 
-        val result = service.generateQuestions("dev", "desc", 1)
+        val result = runBlocking { service.generateQuestions("dev", "desc", 1) }
         assertEquals(listOf("Q1" to "A1"), result)
     }
 
@@ -47,7 +48,7 @@ class OpenAiServiceTest {
         val service = buildService(body)
 
         assertThrows(IllegalStateException::class.java) {
-            service.generateQuestions("dev", "desc", 1)
+            runBlocking { service.generateQuestions("dev", "desc", 1) }
         }
     }
 }

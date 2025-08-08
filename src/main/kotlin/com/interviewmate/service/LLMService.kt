@@ -15,7 +15,7 @@ package com.interviewmate.service
  * qualifiers.
  */
 interface LLMService {
-    fun generateQuestions(
+    suspend fun generateQuestions(
         jobName: String,
         jobDescription: String,
         numQuestions: Int = 5
