@@ -25,6 +25,7 @@ class SecurityConfig(private val jwtFilter: JwtAuthenticationFilter) {
                     .requestMatchers("/actuator/health").permitAll()
                     .anyRequest().authenticated()
             }
+            .anonymous { it.disable() }
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter::class.java)
             .formLogin { it.disable() }
             .httpBasic { it.disable() }

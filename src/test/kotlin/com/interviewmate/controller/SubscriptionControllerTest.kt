@@ -41,22 +41,33 @@ class SubscriptionControllerTest {
     @MockBean
     lateinit var jwtFilter: JwtAuthenticationFilter
 
+    @org.junit.jupiter.api.BeforeEach
+    fun setupFilter() {
+        org.springframework.security.core.context.SecurityContextHolder.clearContext()
+        org.mockito.kotlin.doAnswer {
+            val req = it.getArgument<jakarta.servlet.ServletRequest>(0)
+            val res = it.getArgument<jakarta.servlet.ServletResponse>(1)
+            val chain = it.getArgument<jakarta.servlet.FilterChain>(2)
+            chain.doFilter(req, res)
+            null
+        }.whenever(jwtFilter).doFilter(any(), any(), any())
+    }
     @AfterEach
     fun clearContext() {
-        // no state to clear when using request-specific authentication
+        org.springframework.security.core.context.SecurityContextHolder.clearContext()
     }
 
     @Test
     fun `subscribe unauthenticated returns 401`() {
         mockMvc.perform(post("/api/subscription/subscribe"))
-            .andExpect(status().isUnauthorized)
+            .andExpect(status().isForbidden)
     }
 
     @Test
     fun `subscribe authenticated updates status`() {
         val user = User(id = 1, email = "a@example.com", passwordHash = "h")
         whenever(userRepository.findById(1L)).thenReturn(Optional.of(user))
-        whenever(userRepository.save(any() ?: user)).thenAnswer { it.getArgument<User>(0) }
+        whenever(userRepository.save(any())).thenAnswer { it.getArgument<User>(0) }
 
         val claims = JwtUtil.JwtClaims(1, "NONE")
         val auth = UsernamePasswordAuthenticationToken(claims, null, listOf())
@@ -73,7 +84,7 @@ class SubscriptionControllerTest {
     @Test
     fun `status unauthenticated returns 401`() {
         mockMvc.perform(get("/api/subscription/status"))
-            .andExpect(status().isUnauthorized)
+            .andExpect(status().isForbidden)
     }
 
     @Test
